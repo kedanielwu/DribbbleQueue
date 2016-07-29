@@ -1,0 +1,149 @@
+import datetime
+from Shot import *
+from Author import *
+from Sorting import *
+import logging
+from queue import Queue
+from Download import *
+from threading import Thread
+
+# Global Variables:
+SHOTS_API_URL = 'https://api.dribbble.com/v1/shots'
+ACCESS_TOKEN = ''
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36'}
+
+
+class RequestsWorker(Thread):
+
+    def __init__(self, queue, storage):
+        Thread.__init__(self)
+        self.storage = storage
+        self.queue = queue
+
+    def run(self):
+        while True:
+            parameter_set = self.queue.get()
+            js = request(SHOTS_API_URL, parameter_set, HEADERS)
+            if js is not None:
+                self.storage.append(js)
+            self.queue.task_done()
+
+
+class DownloadWorker(Thread):
+
+    def __init__(self, queue):
+        Thread.__init__(self)
+        self.queue = queue
+
+    def run(self):
+        while True:
+            content = self.queue.get()
+            download_image(content[1], content[0], HEADERS)
+            self.queue.task_done()
+
+
+class Factory:
+
+    def __init__(self):
+        # work flow variable:
+        self.work_queue = Queue()
+        self.image_queue = Queue()
+        self.json_pool = []
+
+        # storage variable:
+        self.shots = {}
+        self.top_10 = []
+
+        # environment variable:
+        self.date = datetime.date.today()
+
+        # logger:
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.logger = logging.getLogger('request')
+
+        # setup:
+        self.path = setup_dir('2016-07-28')
+        self.fill_parameter_pool(50)
+        self.create_request_worker(8)
+        self.work_queue.join()
+
+        for i in range(len(self.json_pool)):
+            self.construct(self.json_pool[i])
+
+        self.extract_top10(['icons', 'icon', 'UI', 'UX'])
+
+        self.fill_image_pool()
+        self.create_download_worker(10)
+        self.image_queue.join()
+
+    # Threading Setup
+
+    def fill_parameter_pool(self, size):
+        for i in range(1, size + 1):
+            ps = parameter_assembling(ACCESS_TOKEN, date='2016-07-28', page=i)
+            self.work_queue.put(ps)
+            self.logger.info("Enqueue page {}.".format(i))
+
+    def fill_image_pool(self):
+        for shot in self.top_10:
+            image_url = self.shots[shot].get_image_url()
+            self.image_queue.put((shot, image_url))
+            self.logger.info("Enqueue image for shot_id {}.".format(shot))
+
+    def create_request_worker(self, size):
+        for i in range(size):
+            worker = RequestsWorker(self.work_queue, self.json_pool)
+            self.logger.info("Request worker {} is instantiated.".format(i + 1))
+            worker.daemon = True
+            worker.start()
+
+    def create_download_worker(self, size):
+        for i in range(size):
+            worker = DownloadWorker(self.image_queue)
+            self.logger.info("Download worker {} is instantiated".format(i + 1))
+            worker.daemon = True
+            worker.start()
+
+    # Data Analysis
+
+    def construct(self, json_file):
+        total = len(json_file)
+        for i in range(total):
+            # Source collecting
+            shot_id = json_file[i]['id']
+            user_id = json_file[i]['user']['id']
+            shot_image_url = json_file[i]['images']['hidpi']
+            if shot_image_url is None:
+                shot_image_url = json_file[i]['images']['normal']
+            avatar_url = json_file[i]['user']['avatar_url']
+            shot_description = json_file[i]['description']
+            user_name = json_file[i]['user']['name']
+            view = json_file[i]['views_count']
+            like = json_file[i]['likes_count']
+            comment = json_file[i]['comments_count']
+            tags = json_file[i]['tags']
+
+            # Record Building
+            new_shot = Shot(shot_id)
+            new_shot.load_description(shot_description)
+            new_shot.load_image_url(shot_image_url)
+            new_shot.load_popularity(view, like, comment)
+            new_shot.load_tags(tags)
+
+            new_author = Author(user_id)
+            new_author.load_avatar_url(avatar_url)
+            new_author.load_name(user_name)
+
+            new_shot.add_author(new_author)
+
+            self.shots[shot_id] = new_shot
+            self.logger.info("Shot id: {} is decoded.".format(shot_id))
+
+    def extract_top10(self, tags=None):
+        sort = Sorting(self.shots, tags=tags)
+        listing = sort.get_result()
+        for tup in listing:
+            self.top_10.append(tup[0])
+            print("shot_id: {}, count: {}".format(tup[0], tup[1]))
+
+test = Factory()

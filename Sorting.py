@@ -4,7 +4,7 @@ class SourceException(Exception):
 
 class Sorting:
 
-    def __init__(self, response, tags=None, authors=None):
+    def __init__(self, response, source='like', tags=None, authors=None):
         self.response_set = response
         self.result_set = []
         self.raw_list = []
@@ -12,7 +12,7 @@ class Sorting:
         self.author_set = authors
 
         # by default, sort by like
-        self.source = 'like'
+        self.source = source
 
         source_set = self.extract_source_by_tag(self.source)
         self.unpack(source_set)
@@ -43,7 +43,6 @@ class Sorting:
             count = self.response_set[key].get_popularity()[source]
             source_set[key] = count
         return source_set
-
 
     def unpack(self, source_set):
         for key in source_set:

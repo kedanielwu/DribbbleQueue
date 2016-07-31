@@ -43,6 +43,8 @@ def request(base_url, parameters, header):
     elif status_code == 502:
         logger.info("Server offline, url: {}".format(http_response.url))
         return None
+    elif status_code == 401:
+        logger.info("Unauthorized, access token is invalid, url: {}".format(http_response.url))
 
 
 def setup_dir(date):

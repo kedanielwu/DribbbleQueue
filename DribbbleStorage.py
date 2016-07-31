@@ -26,7 +26,7 @@ class RequestsWorker(Thread):
             js = request(SHOTS_API_URL, parameter_set, HEADERS)
             if js is not None:
                 self.storage.append(js)
-            self.queue.task_done()
+                self.queue.task_done()
 
 
 class DownloadWorker(Thread):
@@ -56,13 +56,15 @@ class Factory:
 
         # environment variable:
         self.date = datetime.date.today()
+        self.source = 'like'
+        self.tags = []
 
         # logger:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger('request')
 
         # setup:
-        self.path = setup_dir('2016-07-28')
+        self.path = setup_dir('2016-07-29')
         self.fill_parameter_pool(50)
         self.create_request_worker(8)
         self.work_queue.join()
@@ -70,7 +72,7 @@ class Factory:
         for i in range(len(self.json_pool)):
             self.construct(self.json_pool[i])
 
-        self.extract_top10(['icons', 'icon', 'UI', 'UX'])
+        self.extract_top10(tags=['UI', 'icon', 'icons'], source=self.source)
 
         self.fill_image_pool()
         self.create_download_worker(10)
@@ -80,7 +82,7 @@ class Factory:
 
     def fill_parameter_pool(self, size):
         for i in range(1, size + 1):
-            ps = parameter_assembling(ACCESS_TOKEN, date='2016-07-28', page=i)
+            ps = parameter_assembling(ACCESS_TOKEN, date='2016-07-29', page=i)
             self.work_queue.put(ps)
             self.logger.info("Enqueue page {}.".format(i))
 
@@ -139,11 +141,22 @@ class Factory:
             self.shots[shot_id] = new_shot
             self.logger.info("Shot id: {} is decoded.".format(shot_id))
 
-    def extract_top10(self, tags=None):
-        sort = Sorting(self.shots, tags=tags)
+    def extract_top10(self, tags=None, source=None):
+        sort = Sorting(self.shots, tags=tags, source=source)
         listing = sort.get_result()
         for tup in listing:
             self.top_10.append(tup[0])
             print("shot_id: {}, count: {}".format(tup[0], tup[1]))
+
+    # Public setting API
+
+    def add_tag(self, tag):
+        self.tags.append(tag)
+
+    def add_tag_set(self, tags):
+        self.tags.extend(tags)
+
+    def set_preference(self, source):
+        self.source = source
 
 test = Factory()

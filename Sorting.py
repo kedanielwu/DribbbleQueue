@@ -4,7 +4,7 @@ class SourceException(Exception):
 
 class Sorting:
 
-    def __init__(self, response, source='like', tags=None, authors=None):
+    def __init__(self, response, source='like', tags=[], authors=None):
         self.response_set = response
         self.result_set = []
         self.raw_list = []
@@ -14,7 +14,10 @@ class Sorting:
         # by default, sort by like
         self.source = source
 
-        source_set = self.extract_source_by_tag(self.source)
+        if not self.tags:
+            source_set = self.extract_source(self.source)
+        else:
+            source_set = self.extract_source_by_tag(self.source)
         self.unpack(source_set)
         self.result_set = self.sort(self.raw_list)
 

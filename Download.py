@@ -1,11 +1,11 @@
 import requests
 import logging
 import os
+import time
 
 # logger:
 logger = logging.getLogger('request')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
 # Functions:
 
 
@@ -37,14 +37,8 @@ def request(base_url, parameters, header):
         else:
             logger.info("Page loaded, url: {}".format(http_response.url))
             return js
-    elif status_code == 429:
-        logger.info("Reach request rate limit, url: {}".format(http_response.url))
-        return None
-    elif status_code == 502:
-        logger.info("Server offline, url: {}".format(http_response.url))
-        return None
-    elif status_code == 401:
-        logger.info("Unauthorized, access token is invalid, url: {}".format(http_response.url))
+    else:
+        http_response.raise_for_status()
 
 
 def setup_dir(date):

@@ -13,8 +13,7 @@ import requests
 # Global Variables:
 SHOTS_API_URL = 'https://api.dribbble.com/v1/shots'
 ACCESS_TOKEN = ''
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36',
-           'Accept-Encoding': 'gzip'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36'}
 
 
 class RequestsWorker(Thread):

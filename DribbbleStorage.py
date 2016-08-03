@@ -11,10 +11,9 @@ import requests
 
 # Global Variables:
 SHOTS_API_URL = 'https://api.dribbble.com/v1/shots'
-ACCESS_TOKEN = '44988752f4e691138fab78be1c3d2b738c3c29c9be61e6459a37d46ecc2d30f7'
+ACCESS_TOKEN = ''
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36'}
-
 
 class RequestsWorker(Thread):
     def __init__(self, queue, storage):
@@ -91,8 +90,11 @@ class Factory:
             name = str(self.tags)
         else:
             name = 'top 10'
-        os.mkdir(name)
-        os.chdir(name)
+        if not os.path.exists(name):
+            os.mkdir(name)
+            os.chdir(name)
+        else:
+            os.chdir(name)
         self.extract_top10(tags=self.tags, source=self.source)
         self.fill_image_pool(self.top_10)
         self.create_download_worker(4)
@@ -175,6 +177,7 @@ class Factory:
                 self.logger.info("Shot id: {} is omitted.".format(shot_id))
 
     def extract_top10(self, tags=[], source=None):
+        self.top_10.clear()
         sort = Sorting(self.shots, tags=tags, source=source)
         listing = sort.get_result()
         for tup in listing:
@@ -187,7 +190,7 @@ class Factory:
         self.tags.append(new_tag)
 
     def add_tag_set(self, tag_set):
-        self.tags.extend(tag_set)
+        self.tags = tag_set
 
     def set_preference(self, source):
         self.source = source

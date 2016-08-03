@@ -9,15 +9,14 @@ from Download import *
 from threading import Thread
 import requests
 
-
 # Global Variables:
 SHOTS_API_URL = 'https://api.dribbble.com/v1/shots'
-ACCESS_TOKEN = ''
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36'}
+ACCESS_TOKEN = '44988752f4e691138fab78be1c3d2b738c3c29c9be61e6459a37d46ecc2d30f7'
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36'}
 
 
 class RequestsWorker(Thread):
-
     def __init__(self, queue, storage):
         Thread.__init__(self)
         self.storage = storage
@@ -35,10 +34,10 @@ class RequestsWorker(Thread):
                 self.queue.task_done()
             except requests.HTTPError as e:
                 self.logger.info("Exception caught, {}".format(e))
+                self.queue.task_done()
 
 
 class DownloadWorker(Thread):
-
     def __init__(self, queue):
         Thread.__init__(self)
         self.queue = queue
@@ -52,10 +51,10 @@ class DownloadWorker(Thread):
                 self.queue.task_done()
             except requests.HTTPError as e:
                 self.logger.info("Exception caught, {}".format(e))
+                self.queue.task_done()
 
 
 class Factory:
-
     def __init__(self):
         # work flow variable:
         self.work_queue = Queue()
@@ -196,20 +195,4 @@ class Factory:
     def report_top(self):
         for shot in self.top_10:
             print("shot id: {}, likes: {}".format(shot, self.shots[shot].get_popularity()['like']))
-
-# if __name__ == '__main__':
-#     print("====== Welcome to Dribbble Daily Top 10 ======")
-#     raw_in = input("Enter something you are interested in, separated by comma: ")
-#     raw_tags = raw_in.split(',')
-#     tags = []
-#     for tag in raw_tags:
-#         tags.append(tag.strip())
-#     print("====== Tags received, Generating Top 10 for you ======")
-#     time.sleep(1)
-#     ds = Factory()
-#     ds.add_tag_set(tags)
-#     ds.extracting()
-#     time.sleep(1)
-#     print("====== Work Done! You will see the result below, all images are downloaded ======")
-#     ds.report_top()
 
